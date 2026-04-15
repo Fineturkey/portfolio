@@ -1,30 +1,76 @@
 <!DOCTYPE html>
-<html lang=""en>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eugene — Portfolio</title>
+  <link rel="stylesheet" href="index.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
 <body>
-    <h1>Angela's Cinnamon Roll Recipe</h1>
-    <h2>Ingredients</h2>
-    <h3>For the dough:</h3>
-    <ul>
-        <li>3/<sub>4</sub> cup warm milk</li>
-        <li>2 1/<sub>4</sub> teaspoons yeast</li>
-        <li>3/<sub>4</sub> cup granulated sugar</li>
-        <li>1 egg plus 1 egg yolk</li>
-        <li>1/<sub>4</sub> cup butter</li>
-        <li>3 cups bread flour</li>
-    </ul>
 
-    <h3>For the Filling:</h3>
-        <ul>
-            <li>2/<sub>3</sub> cup dark brown sugar</li>
-            <li>1 1/<sub>2</sub> tablespoons ground cinnamon</li>
-            <li>1/<sub>4</sub> cup butter</li>
-        </ul>
-    <h2>Instructions</h2>
+<!-- Loading Screen -->
+<div id="loading">
+  <div id="loading-inner">
+    <div id="loading-title">EUGENE</div>
+    <div id="loading-sub">Portfolio · Interactive Experience</div>
+    <div id="loader-bar"><div id="loader-fill"></div></div>
+    <div id="loading-hint">Use WASD to fly your ship · Press E to enter zones</div>
+  </div>
+</div>
 
-    <ol>
-        <li>Mix the milk with the yeast, sugar, eggs</li>
-        <li>Melt the butter and add to the mixture</li>
-        <!--you get the point, basically just going over lists-->
-    </ol>
+<!-- Canvas -->
+<canvas id="canvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="name-tag">
+    <span id="name-tag-name">EUGENE</span>
+    <span id="name-tag-role">Creative Developer</span>
+  </div>
+
+  <div id="minimap-wrap">
+    <canvas id="minimap" width="130" height="130"></canvas>
+  </div>
+
+  <div id="zone-prompt">
+    <div id="zone-prompt-name"></div>
+    <div id="zone-prompt-hint">Press <kbd>E</kbd> to enter</div>
+  </div>
+
+  <div id="controls-bar">
+    <div class="ctrl-group">
+      <div class="ctrl-row"><div class="key wide">W</div></div>
+      <div class="ctrl-row">
+        <div class="key">A</div><div class="key">S</div><div class="key">D</div>
+      </div>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <div class="key wide">E</div>
+      <div class="key-label">Enter Zone</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="key wide">ESC</div>
+      <div class="key-label">Close</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Overlay -->
+<div id="modal">
+  <div id="modal-panel">
+    <button id="modal-close" aria-label="Close">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
 </body>
 </html>
