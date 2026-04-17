@@ -93,6 +93,9 @@ const grid = new THREE.GridHelper(400, 100, 0x0d0d28, 0x0a0a20);
 grid.position.y = 0.01;
 scene.add(grid);
 
+const animatedObjects = [];
+const islandPointLights = [];
+
 // ═══════════════════════════════════════════════════════
 // STARS
 // ═══════════════════════════════════════════════════════
@@ -239,63 +242,174 @@ const stars = buildStars();
 })();
 
 // ═══════════════════════════════════════════════════════
+// SPIRAL GALAXIES
+// ═══════════════════════════════════════════════════════
+(function buildGalaxies() {
+  function makeSpiral(cx, cy, cz, tiltX, tiltZ, col1, col2, count, radius) {
+    const pos  = new Float32Array(count * 3);
+    const cols = new Float32Array(count * 3);
+    const c1 = new THREE.Color(col1), c2 = new THREE.Color(col2), tmp = new THREE.Color();
+    const arms = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const t = Math.pow(Math.random(), 0.45);
+      const armAngle = ((i % arms) / arms) * Math.PI * 2;
+      const spin = t * Math.PI * 4.2;
+      const angle = armAngle + spin;
+      const r = t * radius;
+      const scatter = (0.5 + t * 0.5) * radius * 0.1;
+      pos[i*3]   = Math.cos(angle) * r + (Math.random() - 0.5) * scatter;
+      pos[i*3+1] = (Math.random() - 0.5) * radius * 0.07 * (1 - t * 0.5);
+      pos[i*3+2] = Math.sin(angle) * r + (Math.random() - 0.5) * scatter;
+      tmp.lerpColors(c1, c2, t * 0.8 + Math.random() * 0.2);
+      cols[i*3] = tmp.r; cols[i*3+1] = tmp.g; cols[i*3+2] = tmp.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(cols, 3));
+    const g = new THREE.Points(geo, new THREE.PointsMaterial({
+      size: 0.5, transparent: true, opacity: 0.72, sizeAttenuation: true,
+      vertexColors: true, depthWrite: false
+    }));
+    g.position.set(cx, cy, cz);
+    g.rotation.x = tiltX;
+    g.rotation.z = tiltZ;
+    return g;
+  }
+
+  [
+    {  p: [ 85,  62, -132], t: [ 0.7,  0.3], c1: 0xffdd99, c2: 0xffffff, r: 22 },
+    {  p: [-105, 78,  115], t: [ 0.4, -0.5], c1: 0x8855ff, c2: 0xddbbff, r: 19 },
+    {  p: [ 118, 52,   85], t: [-0.6,  0.2], c1: 0x33aaff, c2: 0xaaddff, r: 21 },
+    {  p: [ -68, 95, -118], t: [ 0.8,  0.4], c1: 0xff8833, c2: 0xffcc88, r: 17 },
+    {  p: [  45, 115,  138],t: [ 0.3, -0.7], c1: 0x88ffcc, c2: 0x33ffaa, r: 15 },
+    {  p: [-138, 68,   45], t: [-0.5,  0.6], c1: 0xff33aa, c2: 0xffaacc, r: 20 },
+    {  p: [  22, 105, -155],t: [ 0.6, -0.3], c1: 0x44ddff, c2: 0xaaeeff, r: 14 },
+  ].forEach(({ p, t, c1, c2, r }) => {
+    const gal = makeSpiral(p[0], p[1], p[2], t[0], t[1], c1, c2, 1600, r);
+    scene.add(gal);
+    animatedObjects.push({ mesh: gal, kind: 'rotY', speed: 0.00012 + Math.random() * 0.00008 });
+  });
+})();
+
+// ═══════════════════════════════════════════════════════
+// CIRCUIT FLOOR DATA STREAMS
+// ═══════════════════════════════════════════════════════
+(function buildCircuitFloor() {
+  const cell = 10;
+  const half = 20;
+  const cyanMat  = new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.09 });
+  const purpMat  = new THREE.LineBasicMaterial({ color: 0x9b59ff, transparent: true, opacity: 0.07 });
+  const greenMat = new THREE.LineBasicMaterial({ color: 0x39ff14, transparent: true, opacity: 0.06 });
+
+  for (let i = 0; i < 120; i++) {
+    const mat = [cyanMat, purpMat, greenMat][Math.floor(Math.random() * 3)];
+    let x = (Math.floor(Math.random() * half * 2) - half) * cell;
+    let z = (Math.floor(Math.random() * half * 2) - half) * cell;
+    const pts = [new THREE.Vector3(x, 0.018, z)];
+    const segs = 2 + Math.floor(Math.random() * 7);
+    for (let s = 0; s < segs; s++) {
+      if (Math.random() > 0.5) x += (Math.ceil(Math.random() * 4) * (Math.random() > 0.5 ? 1 : -1)) * cell;
+      else                     z += (Math.ceil(Math.random() * 4) * (Math.random() > 0.5 ? 1 : -1)) * cell;
+      x = Math.max(-198, Math.min(198, x));
+      z = Math.max(-198, Math.min(198, z));
+      pts.push(new THREE.Vector3(x, 0.018, z));
+    }
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+  }
+
+  // Junction nodes
+  for (let i = 0; i < 100; i++) {
+    const col = [0x00d4ff, 0x9b59ff, 0x39ff14, 0xff6b35][Math.floor(Math.random() * 4)];
+    const node = new THREE.Mesh(
+      new THREE.SphereGeometry(0.13, 5, 4),
+      new THREE.MeshStandardMaterial({ color: col, emissive: new THREE.Color(col), emissiveIntensity: 2.8 })
+    );
+    const gx = (Math.floor(Math.random() * half * 2) - half) * cell;
+    const gz = (Math.floor(Math.random() * half * 2) - half) * cell;
+    node.position.set(gx, 0.022, gz);
+    scene.add(node);
+  }
+})();
+
+// ═══════════════════════════════════════════════════════
 // PLAYER SHIP
 // ═══════════════════════════════════════════════════════
 function buildShip() {
   const g = new THREE.Group();
+  const metal  = (col) => new THREE.MeshStandardMaterial({ color: col, metalness: 0.82, roughness: 0.22 });
+  const emit   = (col, ei) => new THREE.MeshStandardMaterial({ color: col, emissive: new THREE.Color(col), emissiveIntensity: ei, metalness: 0.1, roughness: 0 });
+  const glass  = new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.5, emissive: 0x2266ff, emissiveIntensity: 0.6, metalness: 0, roughness: 0 });
 
-  const std = (col, emissive = 0x000000, ei = 0) =>
-    new THREE.MeshStandardMaterial({ color: col, emissive, emissiveIntensity: ei, metalness: 0.75, roughness: 0.25 });
+  // ── Main fuselage (tapered) ──
+  const hullFront = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.18, 1.1), metal(0xd8e8ff));
+  hullFront.position.z = 0.42; hullFront.castShadow = true; g.add(hullFront);
+  const hullRear  = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.22, 0.85), metal(0xbccde0));
+  hullRear.position.z = -0.38; hullRear.castShadow = true; g.add(hullRear);
 
-  // Hull body
-  const hull = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.22, 1.5), std(0xdde8ff));
-  hull.castShadow = true;
-  g.add(hull);
+  // Nose cone
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.55, 6), metal(0xe8f0ff));
+  nose.rotation.x = -Math.PI / 2; nose.position.z = 1.02; g.add(nose);
 
-  // Wings
-  const wing = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.09, 0.75), std(0xaabbdd));
-  wing.position.set(0, -0.07, 0.1);
-  wing.castShadow = true;
-  g.add(wing);
-
-  // Swept wing fins
-  [-1.2, 1.2].forEach(x => {
-    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.45), std(0x4488ff, 0x2266ff, 1));
-    fin.position.set(x, -0.04, 0.15);
-    g.add(fin);
-    const tl = new THREE.PointLight(0x4488ff, 2, 4);
-    tl.position.set(x, 0, 0.15);
-    g.add(tl);
+  // ── Wings — swept delta shape ──
+  [-1, 1].forEach(side => {
+    // Inner wing panel
+    const inner = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.07, 0.85), metal(0xaabbd0));
+    inner.position.set(side * 0.82, -0.07, 0.0); g.add(inner);
+    // Outer swept panel
+    const outer = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.055, 0.6), metal(0x8899bb));
+    outer.position.set(side * 1.5, -0.09, 0.15);
+    outer.rotation.y = side * 0.18; g.add(outer);
+    // Wing tip light strip
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.55), emit(0x4488ff, 2.5));
+    strip.position.set(side * 1.88, -0.06, 0.12); g.add(strip);
+    // Nav light point
+    const nav = new THREE.PointLight(0x4488ff, 1.5, 5);
+    nav.position.set(side * 1.9, 0, 0.12); g.add(nav);
   });
 
-  // Cockpit dome
-  const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(0.24, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: 0x88ccff, transparent: true, opacity: 0.55, emissive: 0x2266ff, emissiveIntensity: 0.5, metalness: 0.1, roughness: 0 })
-  );
-  dome.position.set(0, 0.12, 0.28);
-  g.add(dome);
+  // ── Fuselage spine panels ──
+  [0.3, -0.1, -0.45].forEach((z, i) => {
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 0.22), metal(0x99aabb));
+    panel.position.set(0, 0.14, z); g.add(panel);
+  });
 
-  // Engine pods
-  [-0.38, 0.38].forEach(x => {
-    const pod = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 0.5, 8), std(0x8899bb));
-    pod.rotation.x = Math.PI / 2;
-    pod.position.set(x, -0.06, -0.7);
-    g.add(pod);
+  // ── Cockpit ──
+  const cockpitBase = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.45), metal(0x334455));
+  cockpitBase.position.set(0, 0.13, 0.38); g.add(cockpitBase);
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 14, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
+    glass
+  );
+  dome.position.set(0, 0.19, 0.36); g.add(dome);
+
+  // ── Engine pods (x3 — two side, one center) ──
+  [[-0.42, -0.08, -0.72], [0.42, -0.08, -0.72], [0, -0.1, -0.78]].forEach(([px, py, pz], idx) => {
+    const podR = idx === 2 ? 0.13 : 0.11;
+    const pod = new THREE.Mesh(new THREE.CylinderGeometry(podR, podR + 0.035, 0.58, 10), metal(0x7788aa));
+    pod.rotation.x = Math.PI / 2; pod.position.set(px, py, pz); g.add(pod);
+
+    // Inner exhaust rings
+    [0, 1].forEach(ri => {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(podR - 0.01, 0.018, 6, 18),
+        emit(0x4488ff, 3 - ri)
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(px, py, pz - 0.24 - ri * 0.1); g.add(ring);
+    });
 
     // Exhaust glow disc
-    const glow = new THREE.Mesh(
-      new THREE.CircleGeometry(0.09, 8),
-      new THREE.MeshStandardMaterial({ color: 0x66aaff, emissive: 0x4488ff, emissiveIntensity: 4, side: THREE.DoubleSide })
-    );
-    glow.rotation.y = Math.PI;
-    glow.position.set(x, -0.06, -0.97);
-    g.add(glow);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(podR, 10), emit(0x66aaff, 6));
+    disc.rotation.y = Math.PI; disc.position.set(px, py, pz - 0.31); g.add(disc);
   });
 
-  const engineLight = new THREE.PointLight(0x4488ff, 4, 7);
-  engineLight.position.set(0, -0.1, -1);
-  g.add(engineLight);
+  // Single strong engine light
+  const engineLight = new THREE.PointLight(0x4488ff, 6, 10);
+  engineLight.position.set(0, -0.1, -1.1); g.add(engineLight);
+
+  // Underbelly heat shield stripe
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.03, 1.4), emit(0x2244aa, 0.8));
+  stripe.position.set(0, -0.12, 0.05); g.add(stripe);
 
   return g;
 }
@@ -329,8 +443,6 @@ function makeLabel(text, hex) {
 // ═══════════════════════════════════════════════════════
 // ISLANDS
 // ═══════════════════════════════════════════════════════
-const animatedObjects = []; // { mesh, kind, ... }
-const islandPointLights = [];
 
 function buildIsland(zone) {
   const { x, z, color, hex, label, id } = zone;
@@ -543,6 +655,47 @@ function buildIsland(zone) {
 }
 
 ZONES.forEach(buildIsland);
+
+// ── Holographic light shafts over each zone ──
+ZONES.forEach(zone => {
+  // Wide outer shaft
+  const shaftOuter = new THREE.Mesh(
+    new THREE.ConeGeometry(9, 70, 10, 1, true),
+    new THREE.MeshBasicMaterial({ color: zone.color, transparent: true, opacity: 0.018, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  shaftOuter.position.set(zone.x, 35, zone.z);
+  scene.add(shaftOuter);
+
+  // Tight inner shaft
+  const shaftInner = new THREE.Mesh(
+    new THREE.ConeGeometry(3, 70, 6, 1, true),
+    new THREE.MeshBasicMaterial({ color: zone.color, transparent: true, opacity: 0.05, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  shaftInner.position.set(zone.x, 35, zone.z);
+  scene.add(shaftInner);
+
+  // Ground halo ring
+  const halo = new THREE.Mesh(
+    new THREE.RingGeometry(7, 10, 32),
+    new THREE.MeshBasicMaterial({ color: zone.color, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  halo.rotation.x = -Math.PI / 2;
+  halo.position.set(zone.x, 0.05, zone.z);
+  scene.add(halo);
+  animatedObjects.push({ mesh: halo, kind: 'pulseOpacity', base: 0.1, amp: 0.05, speed: 0.001, phase: Math.random() * Math.PI * 2 });
+});
+
+// ── Holographic scan rings on zone platforms ──
+ZONES.forEach(zone => {
+  const scanRing = new THREE.Mesh(
+    new THREE.TorusGeometry(8.5, 0.08, 4, 50),
+    new THREE.MeshStandardMaterial({ color: zone.color, emissive: new THREE.Color(zone.color), emissiveIntensity: 1.5, transparent: true, opacity: 0.6 })
+  );
+  scanRing.rotation.x = Math.PI / 2;
+  scanRing.position.set(zone.x, 0.08, zone.z);
+  scene.add(scanRing);
+  animatedObjects.push({ mesh: scanRing, kind: 'pulse', base: 1.5, amp: 0.7, speed: 0.0012, phase: Math.random() * Math.PI * 2 });
+});
 
 // ═══════════════════════════════════════════════════════
 // CONNECTING PATHS (dim light lines between hub & islands)
@@ -1049,6 +1202,8 @@ function animateObjects(t) {
     const m = o.mesh;
     if (o.kind === 'pulse') {
       m.material.emissiveIntensity = o.base + Math.sin(t * o.speed + o.phase) * o.amp;
+    } else if (o.kind === 'pulseOpacity') {
+      m.material.opacity = o.base + Math.sin(t * o.speed + o.phase) * o.amp;
     } else if (o.kind === 'pulseLight') {
       m.intensity = o.base + Math.sin(t * o.speed + o.phase) * o.amp;
     } else if (o.kind === 'rotY') {
