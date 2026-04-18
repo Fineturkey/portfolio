@@ -71,7 +71,7 @@ scene.add(new THREE.AmbientLight(0x111133, 3));
 const sun = new THREE.DirectionalLight(0x8899ff, 1.2);
 sun.position.set(40, 80, 40);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.near = 0.5;
 sun.shadow.camera.far = 250;
 sun.shadow.camera.left = sun.shadow.camera.bottom = -90;
@@ -297,12 +297,11 @@ const stars = buildStars();
 (function buildCircuitFloor() {
   const cell = 10;
   const half = 20;
-  const cyanMat  = new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.09 });
-  const purpMat  = new THREE.LineBasicMaterial({ color: 0x9b59ff, transparent: true, opacity: 0.07 });
-  const greenMat = new THREE.LineBasicMaterial({ color: 0x39ff14, transparent: true, opacity: 0.06 });
 
+  // Collect all segment pairs per color bucket (3 draw calls instead of 120)
+  const buckets = [[], [], []];
   for (let i = 0; i < 120; i++) {
-    const mat = [cyanMat, purpMat, greenMat][Math.floor(Math.random() * 3)];
+    const b = Math.floor(Math.random() * 3);
     let x = (Math.floor(Math.random() * half * 2) - half) * cell;
     let z = (Math.floor(Math.random() * half * 2) - half) * cell;
     const pts = [new THREE.Vector3(x, 0.018, z)];
@@ -314,21 +313,38 @@ const stars = buildStars();
       z = Math.max(-198, Math.min(198, z));
       pts.push(new THREE.Vector3(x, 0.018, z));
     }
-    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+    for (let p = 0; p < pts.length - 1; p++) buckets[b].push(pts[p], pts[p + 1]);
   }
+  [[0x00d4ff, 0.09], [0x9b59ff, 0.07], [0x39ff14, 0.06]].forEach(([color, opacity], idx) => {
+    if (!buckets[idx].length) return;
+    scene.add(new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(buckets[idx]),
+      new THREE.LineBasicMaterial({ color, transparent: true, opacity })
+    ));
+  });
 
-  // Junction nodes
+  // Junction nodes — 1 InstancedMesh instead of 100 separate Meshes
+  const nodeColors = [new THREE.Color(0x00d4ff), new THREE.Color(0x9b59ff), new THREE.Color(0x39ff14), new THREE.Color(0xff6b35)];
+  const nodeInst = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(0.13, 5, 4),
+    new THREE.MeshStandardMaterial({ emissiveIntensity: 2.8, roughness: 0 }),
+    100
+  );
+  const dummy = new THREE.Object3D();
   for (let i = 0; i < 100; i++) {
-    const col = [0x00d4ff, 0x9b59ff, 0x39ff14, 0xff6b35][Math.floor(Math.random() * 4)];
-    const node = new THREE.Mesh(
-      new THREE.SphereGeometry(0.13, 5, 4),
-      new THREE.MeshStandardMaterial({ color: col, emissive: new THREE.Color(col), emissiveIntensity: 2.8 })
+    const col = nodeColors[Math.floor(Math.random() * 4)];
+    dummy.position.set(
+      (Math.floor(Math.random() * half * 2) - half) * cell,
+      0.022,
+      (Math.floor(Math.random() * half * 2) - half) * cell
     );
-    const gx = (Math.floor(Math.random() * half * 2) - half) * cell;
-    const gz = (Math.floor(Math.random() * half * 2) - half) * cell;
-    node.position.set(gx, 0.022, gz);
-    scene.add(node);
+    dummy.updateMatrix();
+    nodeInst.setMatrixAt(i, dummy.matrix);
+    nodeInst.setColorAt(i, col);
   }
+  nodeInst.instanceMatrix.needsUpdate = true;
+  nodeInst.instanceColor.needsUpdate = true;
+  scene.add(nodeInst);
 })();
 
 // ═══════════════════════════════════════════════════════
@@ -963,6 +979,7 @@ canvas.addEventListener('touchend', () => { touchDX = 0; touchDY = 0; });
 
 let angle = 0;
 const vel = new THREE.Vector3();
+const fwdVec = new THREE.Vector3();
 const SPEED = 0.030, TURN = 0.014, DAMP = 0.91, BOUND = 78;
 
 // ═══════════════════════════════════════════════════════
@@ -1181,7 +1198,7 @@ function updateShip(t) {
 
   ship.rotation.y = angle;
 
-  const fwdVec = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+  fwdVec.set(Math.sin(angle), 0, Math.cos(angle));
   if (fwd)  vel.addScaledVector(fwdVec,  SPEED);
   if (back) vel.addScaledVector(fwdVec, -SPEED * 0.5);
 
@@ -1262,9 +1279,10 @@ function tick() {
     setTimeout(() => {
       loadingEl.classList.add('fade-out');
       setTimeout(() => loadingEl.remove(), 1100);
-      requestAnimationFrame(loop);
     }, 600);
   }
 }
 
+// Render immediately behind the loading screen so shaders compile before reveal
+requestAnimationFrame(loop);
 tick();
