@@ -5,12 +5,12 @@ import * as THREE from 'three';
 // ═══════════════════════════════════════════════════════
 const DATA = {
   name:    'Eugene',
-  initials:'E',
+  initials:'E.G.',
   role:    'Full Stack Developer',
   bio:     'I build things for the web with a focus on clean code, great UX, and performant systems. Passionate about creative tech and interactive experiences.',
   bio2:    'Currently exploring the intersection of game development and web — this portfolio is a small example of that.',
-  github:  'https://github.com/yourusername',
-  linkedin:'https://linkedin.com/in/yourusername',
+  github:  'https://github.com/Fineturkey',
+  linkedin:'https://www.linkedin.com/in/eugene-gu/',
   email:   'eugene7098@gmail.com',
 
   projects: [
