@@ -1244,13 +1244,29 @@ function animateObjects(t) {
 // ═══════════════════════════════════════════════════════
 // RENDER LOOP
 // ═══════════════════════════════════════════════════════
+let scrollMode = false;
+let cinematicAngle = Math.PI * 0.85;
+const CINEMATIC_RADIUS = 22, CINEMATIC_HEIGHT = 14;
+
+function cinematicCamera() {
+  cinematicAngle += 0.00022;
+  const cx = Math.sin(cinematicAngle) * CINEMATIC_RADIUS;
+  const cz = Math.cos(cinematicAngle) * CINEMATIC_RADIUS;
+  camera.position.lerp(new THREE.Vector3(cx, CINEMATIC_HEIGHT, cz), 0.018);
+  camera.lookAt(new THREE.Vector3(0, 3, 0));
+}
+
 function loop(t) {
   requestAnimationFrame(loop);
-  updateShip(t);
-  updateCamera();
+  if (scrollMode) {
+    cinematicCamera();
+  } else {
+    updateShip(t);
+    updateCamera();
+    drawMinimap();
+  }
   animateObjects(t);
   updateMeteors();
-  drawMinimap();
   renderer.render(scene, camera);
 }
 
@@ -1286,3 +1302,207 @@ function tick() {
 // Render immediately behind the loading screen so shaders compile before reveal
 requestAnimationFrame(loop);
 tick();
+
+// ═══════════════════════════════════════════════════════
+// SCROLL PAGE — TRANSMISSION MODE
+// ═══════════════════════════════════════════════════════
+
+function buildScrollPage() {
+  const page = document.getElementById('scroll-page');
+
+  page.innerHTML = `
+    <!-- Hero -->
+    <section class="sp-hero">
+      <div class="hero-signal">INCOMING TRANSMISSION</div>
+      <h1 class="hero-name">${DATA.name.toUpperCase()}</h1>
+      <div class="hero-role">${DATA.role}</div>
+      <p class="hero-desc">${DATA.bio}</p>
+      <div class="hero-coords">
+        <div class="hero-coord-item">
+          <span class="hero-coord-label">Sector</span>
+          <span class="hero-coord-val">ALPHA-7</span>
+        </div>
+        <div class="hero-coord-item">
+          <span class="hero-coord-label">Status</span>
+          <span class="hero-coord-val">ONLINE</span>
+        </div>
+        <div class="hero-coord-item">
+          <span class="hero-coord-label">Signal</span>
+          <span class="hero-coord-val">100%</span>
+        </div>
+      </div>
+      <div class="hero-scroll-hint">SCROLL TO EXPLORE</div>
+    </section>
+
+    <!-- About -->
+    <section class="sp-section">
+      <div class="sp-inner">
+        <div class="sp-zone-badge">◈ SECTOR 01 · 00°N 35°W · ICE PLANET</div>
+        <div class="sp-panel" data-zone="about">
+          <div class="sec-eyebrow">Hello, world</div>
+          <div class="sec-title">About Me</div>
+          <div class="sec-rule" style="color:#00d4ff"></div>
+          <div class="about-layout">
+            <div class="avatar-ring">${DATA.initials}</div>
+            <div>
+              <div class="about-name">${DATA.name}</div>
+              <div class="about-role">${DATA.role}</div>
+              <p class="about-bio">${DATA.bio}</p>
+              <p class="about-bio">${DATA.bio2}</p>
+              <div class="pill-row">
+                <a class="pill" href="${DATA.github}" target="_blank">⌥ GitHub</a>
+                <a class="pill" href="${DATA.linkedin}" target="_blank">in LinkedIn</a>
+                <a class="pill" href="mailto:${DATA.email}">✉ Email</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="sp-divider"><div class="sp-divider-line"></div><div class="sp-divider-dot"></div><div class="sp-divider-line"></div></div>
+
+    <!-- Projects -->
+    <section class="sp-section">
+      <div class="sp-inner">
+        <div class="sp-zone-badge">◈ SECTOR 02 · 35°N 00°E · GAS GIANT</div>
+        <div class="sp-panel" data-zone="projects">
+          <div class="sec-eyebrow">My Work</div>
+          <div class="sec-title">Projects</div>
+          <div class="sec-rule" style="color:#9b59ff"></div>
+          <div class="projects-grid">
+            ${DATA.projects.map(p => `
+              <div class="proj-card">
+                <h3>${p.name}</h3>
+                <p>${p.desc}</p>
+                <div class="tag-row">${p.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+                <a class="proj-link" href="${p.link}" target="_blank">View →</a>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="sp-divider"><div class="sp-divider-line"></div><div class="sp-divider-dot"></div><div class="sp-divider-line"></div></div>
+
+    <!-- Resume -->
+    <section class="sp-section">
+      <div class="sp-inner">
+        <div class="sp-zone-badge">◈ SECTOR 03 · 35°S 00°W · STELLAR CORE</div>
+        <div class="sp-panel" data-zone="resume">
+          <div class="sec-eyebrow">Background</div>
+          <div class="sec-title">Resume</div>
+          <div class="sec-rule" style="color:#39ff14"></div>
+          <div class="resume-cols">
+            <div>
+              <div class="resume-sub">Skills</div>
+              ${DATA.skills.map(s => `
+                <div class="skill-item">
+                  <div class="skill-header"><span>${s.name}</span><span>${s.pct}%</span></div>
+                  <div class="skill-track"><div class="skill-fill" data-pct="${s.pct}"></div></div>
+                </div>`).join('')}
+              <a class="resume-dl" href="#" download>↓ Download PDF</a>
+            </div>
+            <div>
+              <div class="resume-sub">Experience</div>
+              ${DATA.experience.map(e => `
+                <div class="exp-item">
+                  <div class="exp-role">${e.role}</div>
+                  <div class="exp-co">${e.company}</div>
+                  <div class="exp-date">${e.date}</div>
+                  <div class="exp-desc">${e.desc}</div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="sp-divider"><div class="sp-divider-line"></div><div class="sp-divider-dot"></div><div class="sp-divider-line"></div></div>
+
+    <!-- Contact -->
+    <section class="sp-section">
+      <div class="sp-inner">
+        <div class="sp-zone-badge">◈ SECTOR 04 · 00°S 35°E · EVENT HORIZON</div>
+        <div class="sp-panel" data-zone="contact">
+          <div class="sec-eyebrow">Let's Talk</div>
+          <div class="sec-title">Contact</div>
+          <div class="sec-rule" style="color:#ff6b35"></div>
+          <p class="contact-intro">I'm always open to new projects, interesting ideas, or just a good conversation. Hit me up through any of the channels below.</p>
+          <div class="contact-list">
+            <a class="contact-row" href="mailto:${DATA.email}">
+              <div class="contact-icon">✉</div>
+              <div><h4>Email</h4><p>${DATA.email}</p></div>
+            </a>
+            <a class="contact-row" href="${DATA.github}" target="_blank">
+              <div class="contact-icon">⌥</div>
+              <div><h4>GitHub</h4><p>Check out my repositories</p></div>
+            </a>
+            <a class="contact-row" href="${DATA.linkedin}" target="_blank">
+              <div class="contact-icon">in</div>
+              <div><h4>LinkedIn</h4><p>Connect professionally</p></div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="sp-footer">
+      <div class="sp-footer-name">Eugene · Portfolio</div>
+      <div class="sp-footer-coords">α 04h 35m · δ +16° 30′ · DIST 412 ly</div>
+      <button class="sp-return-btn" id="sp-return-btn">◈ RETURN TO SHIP</button>
+    </footer>
+  `;
+
+  // Intersection observer for panel reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Trigger skill bars when resume panel appears
+        if (entry.target.dataset.zone === 'resume') {
+          setTimeout(() => {
+            entry.target.querySelectorAll('.skill-fill').forEach(el => {
+              el.style.width = el.dataset.pct + '%';
+            });
+          }, 150);
+        }
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  page.querySelectorAll('.sp-panel').forEach(el => observer.observe(el));
+
+  document.getElementById('sp-return-btn').addEventListener('click', () => setScrollMode(false));
+}
+
+function setScrollMode(on) {
+  scrollMode = on;
+  const page    = document.getElementById('scroll-page');
+  const toggle  = document.getElementById('mode-toggle');
+  const hud     = document.getElementById('hud');
+  const hudEls  = ['name-tag', 'minimap-wrap', 'zone-prompt', 'controls-bar'];
+
+  if (on) {
+    page.classList.add('open');
+    page.scrollTop = 0;
+    toggle.classList.add('active');
+    toggle.querySelector('.mt-text').textContent = 'RETURN';
+    hudEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.opacity = '0'; });
+    ship.visible = false;
+    closeModal();
+  } else {
+    page.classList.remove('open');
+    toggle.classList.remove('active');
+    toggle.querySelector('.mt-text').textContent = 'TRANSMISSION';
+    hudEls.forEach(id => { const el = document.getElementById(id); if (el) el.style.opacity = ''; });
+    ship.visible = true;
+  }
+}
+
+buildScrollPage();
+
+document.getElementById('mode-toggle').addEventListener('click', () => setScrollMode(!scrollMode));
+
