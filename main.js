@@ -14,19 +14,17 @@ const DATA = {
   email:   'eugene7098@gmail.com',
 
   projects: [
-    { name: 'Project Alpha', desc: 'Full-stack web app with real-time sync and auth.', tags: ['React', 'Node.js', 'MongoDB'], link: '#' },
-    { name: 'Project Beta',  desc: 'ML pipeline for image classification at scale.',   tags: ['Python', 'TensorFlow', 'AWS'], link: '#' },
-    { name: 'Project Gamma', desc: 'Real-time collaboration board with WebSockets.',   tags: ['Vue.js', 'Socket.io', 'Redis'], link: '#' },
-    { name: 'Project Delta', desc: 'Mobile-first e-commerce with Stripe payments.',    tags: ['React Native', 'Stripe', 'Firebase'], link: '#' },
+    { name: 'Carsales App',  desc: 'Full stack web app that tracks a car reseller\'s database with full CRUD operations.', tags: ['PHP', 'SQL'],    link: 'https://github.com/Fineturkey/barecarsales_app' },
+    { name: 'Raytracer',     desc: 'Ray tracer built from scratch — renders scenes with reflections, shadows, and lighting.', tags: ['C++'],         link: 'https://github.com/Fineturkey/raytracing' },
+    { name: 'RNAshape',      desc: 'AI model that predicts the secondary structure of an RNA sequence from its base pairs.', tags: ['Python', 'AI'], link: 'https://github.com/Fineturkey/RNAshape' },
+    { name: 'Sinogram',      desc: 'Reconstructs images from projection data using FFT — simulates CT scan back-projection.', tags: ['C++', 'FFT'],  link: 'https://github.com/Fineturkey/sinogram' },
   ],
 
   skills: [
-    { name: 'JavaScript / TypeScript', pct: 90 },
-    { name: 'React / Next.js',          pct: 85 },
-    { name: 'Node.js / Python',         pct: 80 },
-    { name: 'SQL & NoSQL',              pct: 75 },
-    { name: 'AWS / Cloud',              pct: 68 },
-    { name: 'UI/UX Design',             pct: 62 },
+    { name: 'C++', pct: 85 },
+    { name: 'Python', pct: 80 },
+    { name: 'SQL & NoSQL', pct: 75 },
+    { name: 'PHP', pct: 68 }
   ],
 
   experience: [
